@@ -18,6 +18,7 @@ class DNSDumpsterAPI(object):
     """DNSDumpsterAPI Main Handler"""
 
     def __init__(self, verbose=False, session=None):
+        self.proxy = {}
         self.verbose = verbose
         if not session:
             self.session = requests.Session()
@@ -63,11 +64,13 @@ class DNSDumpsterAPI(object):
             res.append(td.text)
         return res
 
+    def set_proxy(self, proxy):
+        self.proxy = proxy
 
     def search(self, domain):
         dnsdumpster_url = 'https://dnsdumpster.com/'
 
-        req = self.session.get(dnsdumpster_url)
+        req = self.session.get(dnsdumpster_url, proxies=self.proxy)
         soup = BeautifulSoup(req.content, 'html.parser')
         csrf_middleware = soup.findAll('input', attrs={'name': 'csrfmiddlewaretoken'})[0]['value']
         self.display_message('Retrieved token: %s' % csrf_middleware)
@@ -75,7 +78,7 @@ class DNSDumpsterAPI(object):
         cookies = {'csrftoken': csrf_middleware}
         headers = {'Referer': dnsdumpster_url}
         data = {'csrfmiddlewaretoken': csrf_middleware, 'targetip': domain}
-        req = self.session.post(dnsdumpster_url, cookies=cookies, data=data, headers=headers)
+        req = self.session.post(dnsdumpster_url, cookies=cookies, data=data, headers=headers, proxies=self.proxy)
 
         if req.status_code != 200:
             print(
